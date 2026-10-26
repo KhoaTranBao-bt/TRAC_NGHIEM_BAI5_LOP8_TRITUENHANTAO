@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đấu Trí Chatbot Master - Trắc Nghiệm Luồng & Trạng Thái</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* Animated Gradient Background */
+        body {
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            min-height: 100vh;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Glassmorphism Effect */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .glass-pill {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Custom Animations */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+
+        .animate-shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); opacity: 1; }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+
+        .animate-bounce-in {
+            animation: bounceIn 0.6s cubic-bezier(0.215, 0.610, 0.355, 1.000) both;
+        }
+
+        /* Floating elements background */
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            animation: float 8s infinite ease-in-out;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(180deg); }
+        }
+
+        /* Floating Bot Mascot */
+        .bot-float {
+            animation: botFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes botFloat {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(3deg); }
+        }
+
+        /* Custom Option Button Styles */
+        .option-btn {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .option-btn:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.15);
+        }
+
+        .option-btn:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="relative overflow-x-hidden text-gray-800 flex flex-col justify-between p-4 md:p-6 min-h-screen">
+
+    <!-- Floating Background Bubbles -->
+    <div class="bubble w-32 h-32 top-10 left-10" style="animation-delay: 0s;"></div>
+    <div class="bubble w-48 h-48 bottom-20 right-10" style="animation-delay: 2s;"></div>
+    <div class="bubble w-24 h-24 top-1/2 left-1/4" style="animation-delay: 4s;"></div>
+
+    <!-- HEADER / TOP BAR -->
+    <header class="max-w-4xl mx-auto w-full z-10 mb-4">
+        <div class="glass-pill rounded-3xl p-4 px-6 flex justify-between items-center text-white shadow-lg">
+            <!-- App Title & Logo -->
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-yellow-400 to-pink-500 flex items-center justify-center text-2xl shadow-md bot-float">
+                    🤖
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg md:text-xl tracking-wide text-white drop-shadow">CHATBOT MASTER</h1>
+                    <p class="text-xs text-white/80 font-medium">Lập trình Luồng & Trạng thái AI</p>
+                </div>
+            </div>
+
+            <!-- Score & Level Badge -->
+            <div class="flex items-center space-x-4">
+                <div class="text-right">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-white/80 block">Điểm số</span>
+                    <span id="score-text" class="text-2xl font-black text-yellow-300 drop-shadow">0</span>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-lg">
+                    🏆
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-4xl mx-auto w-full z-10 flex-grow flex items-center justify-center py-2">
+        
+        <!-- START SCREEN -->
+        <div id="start-card" class="glass-card rounded-3xl p-6 md:p-10 w-full text-center space-y-6 animate-bounce-in">
+            <div class="w-28 h-28 mx-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl p-1 shadow-2xl bot-float">
+                <div class="w-full h-full bg-white rounded-[22px] flex items-center justify-center text-5xl">
+                    🤖💬
+                </div>
+            </div>
+            
+            <div class="space-y-2">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-pink-600">
+                    Thử Thách Trắc Nghiệm Chatbot AI
+                </h2>
+                <p class="text-gray-600 max-w-lg mx-auto text-sm md:text-base font-medium">
+                    Chinh phục <span class="font-bold text-pink-600">30 câu hỏi</span> thiết kế Luồng & Trạng thái từ mức độ <span class="text-green-600 font-bold">DỄ</span> đến <span class="text-red-600 font-bold">CỰC KHÓ</span>!
+                </p>
+            </div>
+
+            <!-- Features Badges -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto py-2">
+                <div class="p-3 rounded-2xl bg-blue-50 text-blue-700 font-semibold text-xs flex flex-col items-center">
+                    <i class="fa-solid fa-layer-group text-lg mb-1"></i>
+                    Biến trạng thái
+                </div>
+                <div class="p-3 rounded-2xl bg-purple-50 text-purple-700 font-semibold text-xs flex flex-col items-center">
+                    <i class="fa-solid fa-diagram-project text-lg mb-1"></i>
+                    Luồng hội thoại
+                </div>
+                <div class="p-3 rounded-2xl bg-pink-50 text-pink-700 font-semibold text-xs flex flex-col items-center">
+                    <i class="fa-solid fa-code text-lg mb-1"></i>
+                    Lập trình Scratch
+                </div>
+                <div class="p-3 rounded-2xl bg-amber-50 text-amber-700 font-semibold text-xs flex flex-col items-center">
+                    <i class="fa-solid fa-brain text-lg mb-1"></i>
+                    Giải thích chi tiết
+                </div>
+            </div>
+
+            <button id="start-btn" onclick="startQuiz()" class="w-full md:w-2/3 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 hover:from-purple-700 hover:to-red-600 text-white font-extrabold text-lg rounded-2xl shadow-xl transition transform hover:scale-105 active:scale-95 flex items-center justify-center space-x-3 mx-auto">
+                <span>BẮT ĐẦU CHINH PHỤC</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+
+        <!-- QUIZ SCREEN (Hidden by default) -->
+        <div id="quiz-card" class="glass-card rounded-3xl p-6 md:p-8 w-full hidden flex-col justify-between space-y-6">
+            
+            <!-- Question Header: Progress & Difficulty -->
+            <div class="space-y-3">
+                <div class="flex justify-between items-center text-xs md:text-sm font-bold">
+                    <span id="question-count" class="text-purple-700 bg-purple-100 px-3 py-1 rounded-full">
+                        Câu hỏi 1 / 30
+                    </span>
+                    <span id="difficulty-badge" class="px-3 py-1 rounded-full text-white shadow-sm font-extrabold uppercase text-xs">
+                        Dễ
+                    </span>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="w-full bg-gray-200/80 rounded-full h-3 overflow-hidden p-0.5 border border-white">
+                    <div id="progress-bar" class="bg-gradient-to-r from-pink-500 to-purple-600 h-full rounded-full transition-all duration-500 w-0"></div>
+                </div>
+            </div>
+
+            <!-- Question Text -->
+            <div class="space-y-2">
+                <h3 id="question-text" class="text-lg md:text-xl font-extrabold text-gray-800 leading-snug">
+                    Nội dung câu hỏi sẽ hiển thị ở đây...
+                </h3>
+            </div>
+
+            <!-- Options Grid -->
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <!-- Options injected via JS -->
+            </div>
+
+            <!-- EXPLANATION BOX (Hidden until answered) -->
+            <div id="explanation-box" class="hidden p-4 rounded-2xl border-2 transition-all duration-300 animate-bounce-in">
+                <div class="flex items-start space-x-3">
+                    <div id="explanation-icon" class="text-2xl mt-0.5"></div>
+                    <div class="space-y-1 text-sm">
+                        <h4 id="explanation-title" class="font-extrabold text-base"></h4>
+                        <p id="explanation-text" class="text-gray-700 leading-relaxed font-medium"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Button -->
+            <div class="flex justify-end pt-2">
+                <button id="next-btn" onclick="nextQuestion()" disabled class="px-6 py-3 bg-gray-300 text-gray-500 font-extrabold rounded-2xl shadow transition-all flex items-center space-x-2 cursor-not-allowed">
+                    <span>Câu Tiếp Theo</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- RESULT SCREEN (Hidden by default) -->
+        <div id="result-card" class="glass-card rounded-3xl p-6 md:p-10 w-full text-center space-y-6 hidden animate-bounce-in">
+            <div class="w-24 h-24 mx-auto bg-gradient-to-tr from-yellow-400 to-amber-500 rounded-full flex items-center justify-center text-5xl shadow-2xl border-4 border-white">
+                👑
+            </div>
+
+            <div class="space-y-1">
+                <h2 class="text-3xl font-extrabold text-gray-800">KẾT QUẢ THỬ THÁCH</h2>
+                <p class="text-gray-600 font-medium">Bạn đã hoàn thành tất cả 30 câu hỏi!</p>
+            </div>
+
+            <!-- Score Circle & Rank Title -->
+            <div class="p-6 rounded-3xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-200/50 space-y-3">
+                <div class="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-pink-600">
+                    <span id="final-score">0</span> / 300
+                </div>
+                <div class="text-sm font-semibold text-gray-500">
+                    Trả lời đúng: <span id="correct-count" class="font-bold text-green-600">0</span> / 30 câu
+                </div>
+                
+                <div class="pt-2">
+                    <span class="text-xs uppercase font-bold text-gray-400 block tracking-wider">Danh hiệu nhận được</span>
+                    <div id="rank-badge" class="mt-1 inline-block px-5 py-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-white font-black text-lg rounded-2xl shadow-lg">
+                        Tập Sự Chatbot
+                    </div>
+                </div>
+            </div>
+
+            <p id="rank-description" class="text-sm text-gray-600 italic font-medium max-w-md mx-auto">
+                Mô tả danh hiệu sẽ hiển thị tại đây...
+            </p>
+
+            <button onclick="restartQuiz()" class="w-full md:w-2/3 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-extrabold text-lg rounded-2xl shadow-xl transition transform hover:scale-105 active:scale-95 flex items-center justify-center space-x-3 mx-auto">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span>LÀM LẠI TỪ ĐẦU</span>
+            </button>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="max-w-4xl mx-auto w-full text-center text-white/80 text-xs py-2 z-10 font-semibold">
+        Sách Giáo Khoa TRÍ TUỆ NHÂN TẠO LỚP 8 - Bài 5: Xây Dựng Hội Thoại Linh Hoạt Dựa Trên Luồng Và Trạng Thái
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC & QUESTION DATABASE -->
+    <script>
+        // 30 QUESTIONS DATABASE (ARRANGED FROM EASY TO EXTREMELY HARD)
+        const quizDatabase = [
+            // ==================== MỨC DỄ (CÂU 1 - 8) ====================
+            {
+                level: "DỄ",
+                color: "bg-green-500",
+                question: "Phương án nào sau đây là vai trò chính của 'trạng thái' (state) trong cuộc hội thoại với chatbot?",
+                options: [
+                    "A. Lưu trữ toàn bộ thông tin cá nhân của người dùng mãi mãi.",
+                    "B. Lưu lại cảm xúc và giọng nói của người dùng.",
+                    "C. Giúp chatbot ghi nhớ ngữ cảnh và điều chỉnh phản hồi phù hợp.",
+                    "D. Thêm các hiệu ứng hình ảnh hoạt họa sinh động cho giao diện."
+                ],
+                correct: 2,
+                explanation: "Theo sách giáo khoa (trang 33): Trạng thái (state) giúp chatbot ghi nhớ hội thoại đang ở phần nào, ghi nhớ ngữ cảnh vừa trao đổi để tiếp tục cuộc hội thoại đúng mong muốn người dùng."
+            },
+            {
+                level: "DỄ",
+                color: "bg-green-500",
+                question: "Thiết kế trước 'luồng hội thoại' khi lập trình chatbot nhằm mục đích quan trọng nào sau đây?",
+                options: [
+                    "A. Để làm cho chatbot chạy phản hồi nhanh hơn 100 lần.",
+                    "B. Để chatbot có thể tự hoạt động mà không cần viết câu lệnh.",
+                    "C. Để chatbot trò chuyện hợp lý, mạch lạc và không bị rối ngữ cảnh.",
+                    "D. Để giao diện hiển thị của chatbot trở nên đẹp mắt hơn."
+                ],
+                correct: 2,
+                explanation: "Thiết kế trước luồng hội thoại giúp xác định trình tự các bước trò chuyện và phản hồi dự kiến, tránh việc chatbot trả lời lạc đề hoặc lặp lại câu hỏi ngô nghê."
+            },
+            {
+                level: "DỄ",
+                color: "bg-green-500",
+                question: "Để chatbot phản hồi khác nhau theo từng giai đoạn trò chuyện, lập trình viên cần làm điều gì?",
+                options: [
+                    "A. Thay đổi liên tục các hình nền sân khấu trong Scratch.",
+                    "B. Tạo biến lưu trạng thái và kiểm tra giá trị của biến trước khi phản hồi.",
+                    "C. Tăng tốc độ máy tính để xử lý câu trả lời nhanh hơn.",
+                    "D. Thêm thật nhiều nhân vật phụ vào dự án Scratch."
+                ],
+                correct: 1,
+                explanation: "Sử dụng biến trạng thái (state variables) kết hợp với khối điều kiện 'Nếu... Thì' giúp chatbot nhận biết giai đoạn hiện tại để chọn ra câu trả lời tương ứng."
+            },
+            {
+                level: "DỄ",
+                color: "bg-green-500",
+                question: "Khái niệm 'Luồng hội thoại' (Conversation Flow) được hiểu là gì?",
+                options: [
+                    "A. Tốc độ truyền dữ liệu internet giữa người dùng và server chatbot.",
+                    "B. Trình tự các bước mà chatbot thực hiện khi trò chuyện với người dùng.",
+                    "C. Tổng số câu từ mà người dùng nhập vào ô thoại.",
+                    "D. Kịch bản phim hoạt hình được lồng tiếng cho chatbot."
+                ],
+                correct: 1,
+                explanation: "Sách giáo khoa định nghĩa: Luồng hội thoại là trình tự các bước mà chatbot thực hiện khi trò chuyện. Ở mỗi bước, chatbot chọn phản hồi dựa trên điều kiện cụ thể."
+            },
+            {
+                level: "DỄ",
+                color: "bg-green-500",
+                question: "Trong dự án Scratch thực hành Bài 5, biến nào được dùng để lưu môn thể thao người dùng chọn?",
+                options: [
+                    "A. trang_thai",
+                    "B. luong_hoi_thoai",
+                    "C. mon_the_thao",
+                    "D. tra_loi_khach"
+                ],
+                correct: 2,
+                explanation: "Trong bài thực hành Scratch (Hình 5.3 & 5.4), biến `mon_the_thao` được khởi tạo và gán bằng `trả lời` để ghi nhớ tên môn thể thao người dùng vừa chọn."
+            },
+            {
+                level: "DỄ",
+                color: "bg-green-500",
+                question: "Ban đầu khi bấm vào lá cờ xanh trong Scratch, biến `trang_thai` của chatbot được khởi tạo bằng giá trị bao nhiêu?",
+                options: [
+                    "A. Giá trị 1",
+                    "B. Giá trị 0",
+                    "C. Giá trị 2",
+                    "D. Không gán giá trị"
+                ],
+                correct: 1,
+                explanation: "Theo Hình 5.3 trong sách giáo khoa, khi khởi tạo chương trình (Khi bấm vào lá cờ xanh), lệnh `đặt [trang_thai] thành 0` được thực hiện đầu tiên."
+            },
+            {
+                level: "DỄ",
+                color: "bg-green-500",
+                question: "Có bao nhiêu bước cơ bản trong quy trình thiết kế luồng hội thoại cho chatbot được nêu trong bài học?",
+                options: [
+                    "A. 4 bước",
+                    "B. 5 bước",
+                    "C. 6 bước",
+                    "D. 7 bước"
+                ],
+                correct: 2,
+                explanation: "Quy trình thiết kế gồm 6 bước: 1. Xác định mục tiêu, 2. Xác định tình huống, 3. Xác định thông tin cần ghi nhớ, 4. Vẽ sơ đồ luồng, 5. Viết kịch bản đối thoại, 6. Kiểm tra & điều chỉnh."
+            },
+            {
+                level: "DỄ",
+                color: "bg-green-500",
+                question: "Nếu không lưu trạng thái hội thoại, điều gì sẽ xảy ra khi người dùng nhắc đến thông tin đã nói ở câu trước?",
+                options: [
+                    "A. Chatbot sẽ tự động tắt chương trình.",
+                    "B. Chatbot không hiểu ngữ cảnh và hỏi lại từ đầu hoặc phản hồi ngô nghê.",
+                    "C. Chatbot sẽ tính toán sai số học.",
+                    "D. Giao diện Scratch bị đơ."
+                ],
+                correct: 1,
+                explanation: "Ví dụ mở đầu bài học: Lan nói 'Tớ thích cầu lông', nhưng chatbot không lưu trạng thái nên phản hồi 'Bạn có thể chọn môn bạn thích', làm hội thoại thiếu tự nhiên."
+            },
+
+            // ==================== MỨC TƯƠNG ĐỐI (CÂU 9 - 16) ====================
+            {
+                level: "TƯƠNG ĐỐI",
+                color: "bg-blue-500",
+                question: "Ở Bước 3 của quy trình thiết kế luồng hội thoại, công việc chính của lập trình viên là gì?",
+                options: [
+                    "A. Soạn sẵn lời thoại chi tiết cho chatbot.",
+                    "B. Xác định các thông tin cần ghi nhớ (biến trạng thái) như sở thích, địa điểm, môn thể thao...",
+                    "C. Vẽ sơ đồ khối trên giấy.",
+                    "D. Chạy thử chương trình để tìm lỗi."
+                ],
+                correct: 1,
+                explanation: "Bước 3 là 'Xác định thông tin cần ghi nhớ (trạng thái hội thoại)'. Ví dụ: địa điểm (trong nhà/ngoài trời), mức độ vận động, môn đã gợi ý..."
+            },
+            {
+                level: "TƯƠNG ĐỐI",
+                color: "bg-blue-500",
+                question: "Trong Scratch, khi `trang_thai = 0`, chatbot hỏi môn thể thao yêu thích. Sau khi người dùng trả lời, lệnh tiếp theo là gì?",
+                options: [
+                    "A. Dừng toàn bộ chương trình.",
+                    "B. Đặt `trang_thai` thành 1.",
+                    "C. Đặt `trang_thai` thành 2.",
+                    "D. Phát âm thanh chiến thắng."
+                ],
+                correct: 1,
+                explanation: "Theo Hình 5.4: Sau khi lưu câu trả lời vào `mon_the_thao`, chương trình thực hiện `đặt [trang_thai] thành 1` để chuyển cuộc hội thoại sang bước tiếp theo."
+            },
+            {
+                level: "TƯƠNG ĐỐI",
+                color: "bg-blue-500",
+                question: "Tại `trang_thai = 1`, chatbot làm thế nào để đặt câu hỏi cá nhân hóa cho người dùng?",
+                options: [
+                    "A. Chỉ dùng câu hỏi cố định không thay đổi.",
+                    "B. Dùng khối `kết hợp` (join) ghép chuỗi văn bản với biến `mon_the_thao`.",
+                    "C. Đọc suy nghĩ người dùng.",
+                    "D. Yêu cầu người dùng tự gõ câu hỏi."
+                ],
+                correct: 1,
+                explanation: "Hình 5.5: Chatbot dùng khối `kết hợp [Bạn có muốn biết cách chơi ] [kết hợp [mon_the_thao] [ không?]]` để tạo câu hỏi động chứa tên môn thể thao."
+            },
+            {
+                level: "TƯƠNG ĐỐI",
+                color: "bg-blue-500",
+                question: "Nếu người dùng trả lời 'Có' ở `trang_thai = 1`, biến `trang_thai` sẽ chuyển thành giá trị mấy?",
+                options: [
+                    "A. Chuyển thành 0",
+                    "B. Chuyển thành 1",
+                    "C. Chuyển thành 2",
+                    "D. Chuyển thành -1"
+                ],
+                correct: 2,
+                explanation: "Hình 5.5: Khối lệnh kiểm tra `Nếu [trả lời] chứa [có] thì đặt [trang_thai] thành 2`. Bước 2 là bước hướng dẫn cách chơi."
+            },
+            {
+                level: "TƯƠNG ĐỐI",
+                color: "bg-blue-500",
+                question: "Điều gì xảy ra nếu người dùng thay đổi ý định giữa cuộc hội thoại nhưng chatbot KHÔNG cập nhật lại biến trạng thái?",
+                options: [
+                    "A. Chatbot vẫn phản hồi theo thông tin cũ đã ghi nhớ từ trước.",
+                    "B. Chatbot sẽ tự động cập nhật mà không cần lập trình.",
+                    "C. Màn hình Scratch sẽ chuyển sang màu đỏ.",
+                    "D. Biến trạng thái tự xóa."
+                ],
+                correct: 0,
+                explanation: "Nếu người dùng chọn lại nhưng biến trạng thái không cập nhật, chatbot vẫn giữ giá trị cũ và đưa ra gợi ý theo quyết định trước đó, làm sai lệch ngữ cảnh."
+            },
+            {
+                level: "TƯƠNG ĐỐI",
+                color: "bg-blue-500",
+                question: "Trong kịch bản gợi ý thể thao đa điều kiện (Hình 5.2), chatbot kiểm tra những biến trạng thái nào để đưa ra câu trả lời?",
+                options: [
+                    "A. Chỉ kiểm tra biến `mon_the_thao`.",
+                    "B. Kiểm tra biến `dia_diem` (trong nhà/ngoài trời) và `muc_van_dong` (mạnh/nhẹ).",
+                    "C. Chỉ kiểm tra tuổi của người dùng.",
+                    "D. Kiểm tra tên đăng nhập Scratch."
+                ],
+                correct: 1,
+                explanation: "Theo Hình 5.2, phản hồi được quyết định dựa trên sự kết hợp của 2 trạng thái: `dia_diem` và `muc_van_dong`."
+            },
+            {
+                level: "TƯƠNG ĐỐI",
+                color: "bg-blue-500",
+                question: "Khi người dùng chọn địa điểm 'trong nhà' và mức vận động 'mạnh', chatbot gợi ý môn gì trong kịch bản sách bài tập?",
+                options: [
+                    "A. Bóng đá hoặc Tennis",
+                    "B. Cầu lông hoặc Bóng chuyền",
+                    "C. Đi bộ hoặc Đạp xe",
+                    "D. Cờ vua hoặc Cờ tướng"
+                ],
+                correct: 1,
+                explanation: "Sách giáo khoa (trang 31 - Hình 5.2): Với `dia_diem = trong nhà` và `muc_van_dong = mạnh`, chatbot sẽ nói: 'Bạn có thể thử bóng chuyền hoặc cầu lông'."
+            },
+            {
+                level: "TƯƠNG ĐỐI",
+                color: "bg-blue-500",
+                question: "Nếu ở `trang_thai = 1` người dùng trả lời 'Không', để chatbot xử lý lịch sự ta nên bổ sung nhánh lệnh nào?",
+                options: [
+                    "A. Đặt `trang_thai = 2`.",
+                    "B. Đặt `trang_thai = -1` và phát câu nói 'Cảm ơn bạn, chúc bạn một ngày tốt lành!'.",
+                    "C. Lập lại câu hỏi ban đầu ngay lập tức.",
+                    "D. Xóa biến `mon_the_thao`."
+                ],
+                correct: 1,
+                explanation: "Khi người dùng không muốn biết cách chơi, việc chuyển sang trạng thái kết thúc (-1) và gửi lời chào lịch sự giúp luồng hội thoại khép kín và tự nhiên."
+            },
+
+            // ==================== MỨC KHÓ (CÂU 17 - 24) ====================
+            {
+                level: "KHÓ",
+                color: "bg-amber-500",
+                question: "Trong một chatbot bán trà sữa, nếu khách đặt mua Trà sữa (30k) và chọn thêm Thạch (+5k), biến `tong_tien` thay đổi thế nào qua các bước trạng thái?",
+                options: [
+                    "A. Đặt `tong_tien = 30`, sau đó thay đổi `tong_tien` một lượng 5 -> kết quả 35k.",
+                    "B. Gán cố định `tong_tien = 35` ngay ở `trang_thai = 0`.",
+                    "C. Không cần dùng biến `tong_tien`.",
+                    "D. Đặt `tong_tien = 5` rồi cộng 30."
+                ],
+                correct: 0,
+                explanation: "Theo luồng hội thoại đặt món: `trang_thai = 1` gán `tong_tien = 30`, sang `trang_thai = 2` chọn topping thì `thay đổi tong_tien một lượng 5` (tích lũy), đạt tổng 35k."
+            },
+            {
+                level: "KHÓ",
+                color: "bg-amber-500",
+                question: "Mô hình quản lý hội thoại dựa trên trạng thái (State-based Dialogue System) có ưu điểm vượt trội gì so với phản hồi theo từ khóa đơn thuần?",
+                options: [
+                    "A. Luôn hiểu được 100% cảm xúc con người.",
+                    "B. Giữ được ngữ cảnh qua nhiều lượt thoại (multi-turn) và điều hướng người dùng đi đúng mục tiêu.",
+                    "C. Không cần lập trình viên viết kịch bản.",
+                    "D. Chạy được ngay cả khi mất kết nối mạng."
+                ],
+                correct: 1,
+                explanation: "Hệ thống dựa trên trạng thái nhớ được vị trí hiện tại trong kịch bản, xử lý các cuộc hội thoại đa vòng (multi-turn conversation) theo chuỗi logic định sẵn."
+            },
+            {
+                level: "KHÓ",
+                color: "bg-amber-500",
+                question: "Để xuất hóa đơn gồm: Tên khách, Món uống, Tổng tiền trên cùng một dòng bằng Scratch mà không bị dính chữ, ta cần chú ý điều gì?",
+                options: [
+                    "A. Dùng thật nhiều khối `nói` cùng một lúc.",
+                    "B. Thêm khoảng trắng (space) ở cuối các chuỗi chữ cố định trong khối `kết hợp`.",
+                    "C. Bắt buộc phải tạo 3 nhân vật Scratch khác nhau.",
+                    "D. Đổi phông chữ của Scratch."
+                ],
+                correct: 1,
+                explanation: "Khối `kết hợp` trong Scratch dán liền các chuỗi. Nếu không thêm khoảng trắng (ví dụ: 'Tên khách: ' thay vì 'Tên khách:'), các từ sẽ bị dính liền vào nhau."
+            },
+            {
+                level: "KHÓ",
+                color: "bg-amber-500",
+                question: "Khi người dùng nhập câu trả lời là 'Mìn thích đá bóng' (có lỗi chính tả), điều kiện `[trả lời] chứa [bóng đá]` trong Scratch sẽ trả về kết quả gì?",
+                options: [
+                    "A. Đúng (True)",
+                    "B. Sai (False)",
+                    "C. Báo lỗi chương trình",
+                    "D. Trả về giá trị 0"
+                ],
+                correct: 1,
+                explanation: "Khối `chứa ký tự` trong Scratch kiểm tra chuỗi con chính xác. 'đá bóng' không chứa cụm từ 'bóng đá', nên điều kiện trả về Sai (False)."
+            },
+            {
+                level: "KHÓ",
+                color: "bg-amber-500",
+                question: "Trong kịch bản 'Gia sư Toán học', nếu học sinh trả lời SAI ở Câu 1, kỹ thuật giữ nguyên `trang_thai = 1` mang ý nghĩa gì?",
+                options: [
+                    "A. Làm chương trình bị lặp vô tận không thoát được.",
+                    "B. Bắt học sinh phải làm lại đúng câu hỏi hiện tại trước khi chuyển sang bước tiếp theo.",
+                    "C. Tự động cộng điểm thưởng.",
+                    "D. Chuyển sang câu hỏi dễ hơn."
+                ],
+                correct: 1,
+                explanation: "Giữ nguyên trạng thái khi nhập sai tạo thành vòng lặp kiểm tra (retry loop), đảm bảo người dùng đáp ứng điều kiện đầu vào mới tiến sang bước tiếp theo trong luồng."
+            },
+            {
+                level: "KHÓ",
+                color: "bg-amber-500",
+                question: "Nhược điểm lớn nhất của luồng hội thoại thiết kế cố định (Rule-based Flow) là gì?",
+                options: [
+                    "A. Tốn quá nhiều dung lượng bộ nhớ máy tính.",
+                    "B. Thiếu linh hoạt khi người dùng đưa ra câu hỏi ngoài các tình huống đã dự đoạt trước.",
+                    "C. Không thể lập trình được trên Scratch.",
+                    "D. Tốc độ phản hồi rất chậm."
+                ],
+                correct: 1,
+                explanation: "Kịch bản cố định chỉ xử lý đúng các nhánh đã được lập trình trước. Nếu người dùng hỏi câu nằm ngoài kịch bản (Out-of-scope), chatbot sẽ gặp bế tắc."
+            },
+            {
+                level: "KHÓ",
+                color: "bg-amber-500",
+                question: "Bước 6 trong quy trình 6 bước thiết kế luồng hội thoại là 'Kiểm tra và điều chỉnh'. Mục tiêu chính của bước này là gì?",
+                options: [
+                    "A. Viết lại kịch bản mới hoàn toàn.",
+                    "B. Thử nghiệm các trường hợp rẽ nhánh, người dùng đổi ý, kiểm tra ngôn từ thân thiện và cập nhật đúng trạng thái.",
+                    "C. Đổi màu sắc giao diện chatbot.",
+                    "D. Đặt tên mới cho biến."
+                ],
+                correct: 1,
+                explanation: "Bước 6 giúp phát hiện các 'bẫy' luồng (mất trạng thái, lặp gợi ý cũ, phản hồi không thân thiện) để tối ưu hóa trải nghiệm người dùng."
+            },
+            {
+                level: "KHÓ",
+                color: "bg-amber-500",
+                question: "Khi lập trình chatbot phân nhánh phức tạp, tại sao phải cập nhật biến trạng thái NGAY SAU KHI nhận phản hồi hợp lệ?",
+                options: [
+                    "A. Để tránh việc câu lệnh tiếp theo kiểm tra nhầm trạng thái cũ dẫn đến thực hiện sai nhánh.",
+                    "B. Vì Scratch bắt buộc phải làm vậy.",
+                    "C. Để giải phóng bộ nhớ RAM.",
+                    "D. Để không phải viết khối lệnh 'Nếu... Thì'."
+                ],
+                correct: 0,
+                explanation: "Nếu không cập nhật trạng thái ngay, ở vòng lặp tiếp theo chatbot vẫn thấy trạng thái cũ và sẽ thực hiện lại hành động của bước vừa qua."
+            },
+
+            // ==================== MỨC CỰC KHÓ (CÂU 25 - 30) ====================
+            {
+                level: "CỰC KHÓ",
+                color: "bg-red-600",
+                question: "Trong thiết kế Chatbot nâng cao, kỹ thuật 'Context Switching' (Chuyển đổi ngữ cảnh) cho phép chatbot thực hiện điều gì?",
+                options: [
+                    "A. Tạm dừng luồng hội thoại hiện tại để xử lý một yêu cầu xen ngang của người dùng, sau đó quay lại đúng `trang_thai` cũ.",
+                    "B. Đổi phông nền giao diện theo màu sắc người dùng thích.",
+                    "C. Xóa sạch toàn bộ bộ nhớ biến trạng thái để bắt đầu lại.",
+                    "D. Dịch tự động từ tiếng Việt sang tiếng Anh."
+                ],
+                correct: 0,
+                explanation: "Context Switching sử dụng ngăn xếp (stack) hoặc lưu vết trạng thái cũ (`pre_state`). Khi bị ngắt ngang (ví dụ đang hỏi đặt vé lại hỏi thời tiết), bot trả lời xong rồi quay về `trang_thai` dở dang."
+            },
+            {
+                level: "CỰC KHÓ",
+                color: "bg-red-600",
+                question: "Xét mã giả trong Scratch: Nếu `trang_thai = 1` (Hỏi món), khách chọn 'Cà phê'. Bot đặt `mon = Cà phê`, gán `trang_thai = 2`. Nhưng ngay sau đó khách nói 'À thôi đổi sang Trà sữa'. Cơ chế nào giúp xử lý chuẩn xác nhất?",
+                options: [
+                    "A. Báo lỗi và khóa không cho khách nhập tiếp.",
+                    "B. Bổ sung nhánh bắt từ khóa thay đổi ('đổi', 'thôi') tại `trang_thai = 2` để quay về `trang_thai = 1` và cập nhật lại `mon = Trà sữa`.",
+                    "C. Bắt khách phải tắt ứng dụng đi mở lại.",
+                    "D. Cứ giữ nguyên Cà phê và tính tiền."
+                ],
+                correct: 1,
+                explanation: "Đây là kỹ thuật Rollback/Loop-back State trong thiết kế luồng: cho phép phát hiện ý định đổi lựa chọn để trả biến trạng thái về bước trước và ghi đè giá trị mới."
+            },
+            {
+                level: "CỰC KHÓ",
+                color: "bg-red-600",
+                question: "Trong kiến trúc AI Chatbot hiện đại (NLP/NLU), mối quan hệ giữa Intent (Ý định), Entity (Thực thể) và State (Trạng thái) được mô tả đúng nhất là gì?",
+                options: [
+                    "A. State xác định Intent, Intent trích xuất Entity.",
+                    "B. Intent xác định mong muốn người dùng, Entity chứa dữ liệu chi tiết, State theo dõi tiến trình hoàn thành mục tiêu.",
+                    "C. Entity là tên biến, Intent là câu lệnh 'nếu', State là màu sắc.",
+                    "D. Cả 3 khái niệm này là một, chỉ khác tên gọi."
+                ],
+                correct: 1,
+                explanation: "Ví dụ: 'Đặt cho tôi 2 ly trà sữa' -> Intent: `dat_do_uong`, Entity: `so_luong=2`, `do_uong=trà sữa`. Biến State ghi nhớ bot đã thu thập đủ thông tin chưa để chốt đơn."
+            },
+            {
+                level: "CỰC KHÓ",
+                color: "bg-red-600",
+                question: "Nếu lập trình một chatbot tư vấn hỗ trợ khách hàng gồm 50 trạng thái khác nhau trên Scratch, giải pháp cấu trúc mã nào là tối ưu nhất để tránh trùng lặp và rối chương trình?",
+                options: [
+                    "A. Viết 50 khối 'Nếu... Thì' lồng vào nhau liên tục.",
+                    "B. Dùng danh sách (List) lưu kịch bản và sử dụng Khối của tôi (Custom Block/Subroutine) xử lý theo từng mã `trang_thai`.",
+                    "C. Nhân bản thành 50 nhân vật Scratch khác nhau.",
+                    "D. Viết tất cả lệnh trong một khối duy nhất không chia nhỏ."
+                ],
+                correct: 1,
+                explanation: "Sử dụng Custom Blocks (Khối của tôi) phân tách chức năng theo từng State và dùng List quản lý câu thoại giúp mã nguồn mô-đun hóa, dễ bảo trì và mở rộng."
+            },
+            {
+                level: "CỰC KHÓ",
+                color: "bg-red-600",
+                question: "Lỗi 'Infinite State Loop' (Vòng lặp trạng thái vô tận) xảy ra trong trường hợp nào sau đây?",
+                options: [
+                    "A. Khi chatbot chuyển sang trạng thái kết thúc quá nhanh.",
+                    "B. Khi hai trạng thái A và B liên tục chuyển đổi qua lại cho nhau mà không có điều kiện thoát hoặc không thay đổi biến trạng thái.",
+                    "C. Khi biến trạng thái bị xóa khỏi dự án.",
+                    "D. Khi người dùng không gõ gì vào ô thoại."
+                ],
+                correct: 1,
+                explanation: "Vòng lặp vô tận xảy ra khi State A đặt `trang_thai = B`, rồi State B lại đặt `trang_thai = A` mà không kiểm tra điều kiện đầu ra của người dùng, khiến bot bị kẹt."
+            },
+            {
+                level: "CỰC KHÓ",
+                color: "bg-red-600",
+                question: "Để xây dựng chatbot 'thông minh' có khả năng nhớ thông tin qua các phiên đăng nhập khác nhau của người dùng trong Scratch nâng cao, ta phải dùng công nghệ nào?",
+                options: [
+                    "A. Biến thông thường (For this sprite only).",
+                    "B. Biến Đám Mây (Cloud Variables) kết hợp lưu trữ mã hóa ID người dùng.",
+                    "C. Biến toàn cục (For all sprites).",
+                    "D. Không thể thực hiện được trên Scratch."
+                ],
+                correct: 1,
+                explanation: "Biến Đám Mây (Cloud Variables) trong Scratch cho phép lưu trữ dữ liệu trên máy chủ server của Scratch, giúp giữ lại trạng thái người dùng kể cả khi đã tắt trình duyệt."
+            }
+        ];
+
+        // GAME STATE VARIABLES
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let correctAnswersCount = 0;
+        let canAnswer = true;
+
+        // SOUND EFFECTS USING WEB AUDIO API (No external assets needed)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.3); // A5
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, audioCtx.currentTime); // A3
+                osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.4); // A2
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            } else if (type === 'click') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.05);
+            }
+        }
+
+        // START QUIZ
+        function startQuiz() {
+            playSound('click');
+            document.getElementById('start-card').classList.add('hidden');
+            document.getElementById('quiz-card').classList.remove('hidden');
+            document.getElementById('quiz-card').classList.add('flex');
+            
+            currentQuestionIndex = 0;
+            score = 0;
+            correctAnswersCount = 0;
+            document.getElementById('score-text').innerText = score;
+
+            loadQuestion();
+        }
+
+        // LOAD QUESTION DATA
+        function loadQuestion() {
+            canAnswer = true;
+            const q = quizDatabase[currentQuestionIndex];
+
+            // Reset UI states
+            document.getElementById('question-count').innerText = `Câu hỏi ${currentQuestionIndex + 1} / ${quizDatabase.length}`;
+            
+            const diffBadge = document.getElementById('difficulty-badge');
+            diffBadge.innerText = q.level;
+            diffBadge.className = `px-3 py-1 rounded-full text-white shadow-sm font-extrabold uppercase text-xs ${q.color}`;
+
+            // Progress bar
+            const progressPercent = ((currentQuestionIndex + 1) / quizDatabase.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+
+            // Question Text
+            document.getElementById('question-text').innerText = q.question;
+
+            // Options Container
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = `option-btn w-full p-4 rounded-2xl text-left font-semibold text-sm md:text-base border-2 border-gray-200/80 bg-white/90 text-gray-700 shadow-sm flex items-start space-x-3`;
+                btn.onclick = () => selectOption(index);
+                btn.innerHTML = `
+                    <span class="w-7 h-7 rounded-xl bg-gray-100 flex items-center justify-center font-bold text-gray-500 shrink-0 mt-0.5 text-xs">
+                        ${String.fromCharCode(65 + index)}
+                    </span>
+                    <span class="leading-relaxed">${opt.substring(3)}</span>
+                `;
+                optionsContainer.appendChild(btn);
+            });
+
+            // Hide Explanation & Disable Next Button
+            document.getElementById('explanation-box').classList.add('hidden');
+            const nextBtn = document.getElementById('next-btn');
+            nextBtn.disabled = true;
+            nextBtn.className = "px-6 py-3 bg-gray-300 text-gray-500 font-extrabold rounded-2xl shadow transition-all flex items-center space-x-2 cursor-not-allowed";
+        }
+
+        // HANDLE OPTION SELECTION
+        function selectOption(selectedIndex) {
+            if (!canAnswer) return;
+            canAnswer = false;
+
+            const q = quizDatabase[currentQuestionIndex];
+            const options = document.getElementById('options-container').children;
+            const isCorrect = selectedIndex === q.correct;
+
+            // Highlight Options
+            Array.from(options).forEach((btn, idx) => {
+                btn.disabled = true;
+                if (idx === q.correct) {
+                    btn.className = "option-btn w-full p-4 rounded-2xl text-left font-bold text-sm md:text-base border-2 border-green-500 bg-green-50 text-green-800 shadow-md flex items-start space-x-3";
+                    btn.querySelector('span').className = "w-7 h-7 rounded-xl bg-green-500 text-white flex items-center justify-center font-bold shrink-0 mt-0.5 text-xs";
+                } else if (idx === selectedIndex && !isCorrect) {
+                    btn.className = "option-btn w-full p-4 rounded-2xl text-left font-bold text-sm md:text-base border-2 border-red-500 bg-red-50 text-red-800 shadow-md flex items-start space-x-3 animate-shake";
+                    btn.querySelector('span').className = "w-7 h-7 rounded-xl bg-red-500 text-white flex items-center justify-center font-bold shrink-0 mt-0.5 text-xs";
+                } else {
+                    btn.className = "option-btn w-full p-4 rounded-2xl text-left font-medium text-sm md:text-base border-2 border-gray-100 bg-white/50 text-gray-400 flex items-start space-x-3 opacity-60";
+                }
+            });
+
+            // Sound & Score Update
+            const expBox = document.getElementById('explanation-box');
+            const expIcon = document.getElementById('explanation-icon');
+            const expTitle = document.getElementById('explanation-title');
+            const expText = document.getElementById('explanation-text');
+
+            if (isCorrect) {
+                playSound('correct');
+                score += 10;
+                correctAnswersCount++;
+                document.getElementById('score-text').innerText = score;
+
+                expBox.className = "p-4 rounded-2xl border-2 border-green-300 bg-green-50/90 text-green-900 animate-bounce-in";
+                expIcon.innerText = "🎉";
+                expTitle.innerText = "Chính Xác! +10 Điểm";
+                expTitle.className = "font-extrabold text-base text-green-700";
+            } else {
+                playSound('wrong');
+                expBox.className = "p-4 rounded-2xl border-2 border-red-300 bg-red-50/90 text-red-900 animate-bounce-in";
+                expIcon.innerText = "💡";
+                expTitle.innerText = "Chưa Đúng Rồi!";
+                expTitle.className = "font-extrabold text-base text-red-700";
+            }
+
+            expText.innerText = q.explanation;
+            expBox.classList.remove('hidden');
+
+            // Enable Next Button
+            const nextBtn = document.getElementById('next-btn');
+            nextBtn.disabled = false;
+            nextBtn.className = "px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-extrabold rounded-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center space-x-2 cursor-pointer";
+        }
+
+        // NEXT QUESTION OR SHOW RESULTS
+        function nextQuestion() {
+            playSound('click');
+            currentQuestionIndex++;
+
+            if (currentQuestionIndex < quizDatabase.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        // SHOW FINAL RESULTS
+        function showResults() {
+            document.getElementById('quiz-card').classList.add('hidden');
+            document.getElementById('quiz-card').classList.remove('flex');
+            document.getElementById('result-card').classList.remove('hidden');
+
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('correct-count').innerText = correctAnswersCount;
+
+            // Determine Rank
+            const rankBadge = document.getElementById('rank-badge');
+            const rankDesc = document.getElementById('rank-description');
+
+            if (score >= 270) {
+                rankBadge.innerText = "🧙‍♂️ BẬC THẦY TRẠNG THÁI AI";
+                rankBadge.className = "mt-1 inline-block px-5 py-2 bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 text-white font-black text-lg rounded-2xl shadow-lg animate-bounce-in";
+                rankDesc.innerText = "Xuất sắc! Bạn sở hữu tư duy thiết kế luồng hội thoại và kiến thức AI vô cùng thượng thừa. Bạn đã sẵn sàng xây dựng những hệ thống Chatbot thực tế!";
+            } else if (score >= 200) {
+                rankBadge.innerText = "🚀 KỲ SƯ LUỒNG HỘI THOẠI";
+                rankBadge.className = "mt-1 inline-block px-5 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-black text-lg rounded-2xl shadow-lg";
+                rankDesc.innerText = "Rất ấn tượng! Bạn nắm vững quy trình 6 bước thiết kế và quản lý biến trạng thái đa nhánh cực kỳ mượt mà.";
+            } else if (score >= 120) {
+                rankBadge.innerText = "🛠️ LẬP TRÌNH VIÊN CHATBOT";
+                rankBadge.className = "mt-1 inline-block px-5 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-black text-lg rounded-2xl shadow-lg";
+                rankDesc.innerText = "Khá tốt! Bạn đã nắm vững các khái niệm cơ bản về luồng hội thoại và bài thực hành Scratch. Hãy ôn lại một số câu khó để nâng cao trình độ nhé!";
+            } else {
+                rankBadge.innerText = "🌱 TẬP SỰ CHATBOT";
+                rankBadge.className = "mt-1 inline-block px-5 py-2 bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-black text-lg rounded-2xl shadow-lg";
+                rankDesc.innerText = "Cố gắng lên! Hãy đọc lại Bài 5 SGK Tin học 12 để ghi nhớ rõ hơn về vai trò của biến trạng thái và quy trình thiết kế nhé.";
+            }
+
+            // Fire Confetti Animation
+            confetti({
+                particleCount: 120,
+                spread: 80,
+                origin: { y: 0.6 }
+            });
+        }
+
+        // RESTART QUIZ
+        function restartQuiz() {
+            playSound('click');
+            document.getElementById('result-card').classList.add('hidden');
+            startQuiz();
+        }
+    </script>
+</body>
+</html>
